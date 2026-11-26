@@ -357,7 +357,7 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 				// Recherche de l'attribut correspondant
 				if (dataGridBlockRule->GetDataGridVarKeyType() == KWType::Continuous)
 				{
-					nVarKey = int(floor(dataGridBlockRule->GetContinuousVarKeyAt(nDataGrid) + 0.5));
+					nVarKey = dataGridBlockRule->GetContinuousVarKeyAt(nDataGrid);
 					attribute = attributeBlock->LookupAttributeByContinuousVarKey(nVarKey);
 				}
 				else

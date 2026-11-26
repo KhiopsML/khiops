@@ -481,7 +481,7 @@ Symbol KWSampleGenerator::ComputePredictedClass(KWObject* kwoObject)
 	require(CheckObject(kwoObject));
 
 	// Recherche de l'index de la cellule de grille
-	nCellIndex = (int)floor(cellIndexRule->ComputeContinuousResult(kwoObject) + 0.5);
+	nCellIndex = KWContinuous::ContinuousToBoundedInt(cellIndexRule->ComputeContinuousResult(kwoObject));
 
 	// Effet de bord avec une seule classe (peut arriver pour des tres petites bases)
 	if (nMinusIndex < 0 or nPlusIndex < 0)
@@ -526,7 +526,7 @@ double KWSampleGenerator::ComputePredictedProb(KWObject* kwoObject, const Symbol
 	require(CheckObject(kwoObject));
 
 	// Recherche de l'index de la cellule de grille
-	nCellIndex = (int)floor(cellIndexRule->ComputeContinuousResult(kwoObject) + 0.5);
+	nCellIndex = KWContinuous::ContinuousToBoundedInt(cellIndexRule->ComputeContinuousResult(kwoObject));
 
 	// Effet de bord avec une seule classe (peut arriver pour des tres petites bases)
 	if (nMinusIndex < 0 or nPlusIndex < 0)

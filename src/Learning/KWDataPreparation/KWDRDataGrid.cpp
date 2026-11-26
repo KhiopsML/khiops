@@ -256,7 +256,7 @@ void KWDRDataGrid::ExportDataGridStats(KWDataGridStats* dataGridStats) const
 		operand = GetOperandAt(GetAttributeNumber() + 1);
 		assert(operand->GetType() == KWType::Continuous);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
-		nGranularity = int(floor(operand->GetContinuousConstant() + 0.5));
+		nGranularity = KWContinuous::ContinuousToBoundedInt(operand->GetContinuousConstant());
 
 		// Recherche du vecteur d'effectifs des valeurs initiales
 		operand = GetOperandAt(GetAttributeNumber() + 2);
@@ -678,7 +678,7 @@ boolean KWDRDataGrid::CheckOperandsFamily(const KWDerivationRule* ruleFamily) co
 		// Verification de la granularite
 		else
 		{
-			nGranularity = (int)floor(operand->GetContinuousConstant() + 0.5);
+			nGranularity = KWContinuous::ContinuousToBoundedInt(operand->GetContinuousConstant());
 			if (nGranularity < 0)
 			{
 				bOk = false;
@@ -911,7 +911,8 @@ int KWDRFrequencies::ComputeTotalFrequency() const
 	else
 	{
 		for (nIndex = 0; nIndex < GetOperandNumber(); nIndex++)
-			nTotalFrequency += (int)floor(GetOperandAt(nIndex)->GetContinuousConstant() + 0.5);
+			nTotalFrequency +=
+			    KWContinuous::ContinuousToBoundedInt(GetOperandAt(nIndex)->GetContinuousConstant());
 	}
 
 	return nTotalFrequency;
@@ -999,7 +1000,7 @@ void KWDRFrequencies::BuildStructureFromBase(const KWDerivationRule* kwdrSource)
 		cValue = operand->GetContinuousConstant();
 
 		// On se recale sur l'entier le plus proche
-		nFrequency = (int)floor(cValue + 0.5);
+		nFrequency = KWContinuous::ContinuousToBoundedInt(cValue);
 		ivFrequencies.SetAt(i, nFrequency);
 	}
 	bStructureInterface = true;

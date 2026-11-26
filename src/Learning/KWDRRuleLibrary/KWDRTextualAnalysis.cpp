@@ -366,7 +366,7 @@ Symbol KWDRTextInit::ComputeTextResult(const KWObject* kwoObject) const
 	char cValue;
 
 	// Construction d'un chaine de la longueur souhaitee
-	nSize = int(floor(GetFirstOperand()->GetContinuousConstant() + 0.5));
+	nSize = KWContinuous::ContinuousToBoundedInt(GetFirstOperand()->GetContinuousConstant());
 	cValue = GetSecondOperand()->GetSymbolConstant().GetAt(0);
 	sResult = ALString(cValue, nSize);
 	return Symbol(sResult, nSize);

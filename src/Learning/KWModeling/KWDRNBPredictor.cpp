@@ -1188,7 +1188,8 @@ void KWDRNBClassifier::ExportAttributeNames(const KWClass* kwcOwnerClass, String
 					if (nUncheckedVarKeyType == KWType::Continuous)
 					{
 						assert(continuousVarKeyRule != NULL);
-						nVarKey = int(floor(continuousVarKeyRule->GetValueAt(nIndex) + 0.5));
+						nVarKey = KWContinuous::ContinuousToBoundedInt(
+						    continuousVarKeyRule->GetValueAt(nIndex));
 						attribute = cast(KWAttribute*, nkdBlockAttributes.Lookup(nVarKey));
 						assert(dataGridBlockRule->GetUncheckedContinuousVarKeyAt(nIndex) ==
 						       nVarKey);
@@ -2581,7 +2582,7 @@ Symbol KWDRNBRegressor::ComputeTargetQuantileDistribution() const
 		cTargetFrequency =
 		    rankRegressorRule->GetDataGridSetTargetCumulativeFrequencyAt(nTarget) - cTargetCumulativeFrequency;
 		cTargetCumulativeFrequency = rankRegressorRule->GetDataGridSetTargetCumulativeFrequencyAt(nTarget);
-		nCumulativeFrequency = (int)floor(0.5 + cTargetCumulativeFrequency);
+		nCumulativeFrequency = KWContinuous::ContinuousToBoundedInt(cTargetCumulativeFrequency);
 
 		// Calcul de la probabilite la partie cible
 		cRankIntervalProb = rankRegressorRule->cvTargetProbs.GetAt(nTarget) * cTargetFrequency;
@@ -2747,8 +2748,8 @@ void KWDRNBRegressor::ComputeCumulativeTargetValues(ContinuousVector* cvResultVe
 	cCumulativeValue = 0;
 	for (nTarget = 0; nTarget < rankRegressorRule->GetDataGridSetTargetValueNumber(); nTarget++)
 	{
-		nCumulativeFrequency =
-		    (int)floor(0.5 + rankRegressorRule->GetDataGridSetTargetCumulativeFrequencyAt(nTarget));
+		nCumulativeFrequency = KWContinuous::ContinuousToBoundedInt(
+		    rankRegressorRule->GetDataGridSetTargetCumulativeFrequencyAt(nTarget));
 
 		// Calcul du cumul des valeurs en prenant en compte les instance de la partie cible
 		while (nInstance < nCumulativeFrequency)
@@ -2837,8 +2838,8 @@ void KWDRNBRegressor::ComputeCumulativeSquareTargetValues(ContinuousVector* cvRe
 	cCumulativeValue = 0;
 	for (nTarget = 0; nTarget < rankRegressorRule->GetDataGridSetTargetValueNumber(); nTarget++)
 	{
-		nCumulativeFrequency =
-		    (int)floor(0.5 + rankRegressorRule->GetDataGridSetTargetCumulativeFrequencyAt(nTarget));
+		nCumulativeFrequency = KWContinuous::ContinuousToBoundedInt(
+		    rankRegressorRule->GetDataGridSetTargetCumulativeFrequencyAt(nTarget));
 
 		// Calcul du cumul des valeurs en prenant en compte les instance de la partie cible
 		while (nInstance < nCumulativeFrequency)

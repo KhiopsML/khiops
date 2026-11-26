@@ -359,7 +359,7 @@ Symbol KWDRSymbolValueAt::ComputeSymbolResult(const KWObject* kwoObject) const
 	symbolVector = cast(KWDRSymbolVector*, GetFirstOperand()->GetStructureValue(kwoObject));
 
 	// Recherche de l'index
-	nIndex = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+	nIndex = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousValue(kwoObject));
 
 	// Renvoie de la valeur si index valide
 	if (1 <= nIndex and nIndex <= symbolVector->GetValueNumber())
@@ -403,7 +403,7 @@ Continuous KWDRContinuousValueAt::ComputeContinuousResult(const KWObject* kwoObj
 	continuousVector = cast(KWDRContinuousVector*, GetFirstOperand()->GetStructureValue(kwoObject));
 
 	// Recherche de l'index
-	nIndex = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+	nIndex = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousValue(kwoObject));
 
 	// Renvoie de la valeur si index valide
 	if (1 <= nIndex and nIndex <= continuousVector->GetValueNumber())
