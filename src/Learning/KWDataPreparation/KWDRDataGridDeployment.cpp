@@ -112,7 +112,7 @@ boolean KWDRDataGridAtRule::CheckOperandsCompleteness(const KWClass* kwcOwnerCla
 
 		// Test de validite de l'index
 		cDeploymentAttributeIndex = GetOperandAt(1)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cDeploymentAttributeIndex, nAttributeIndex);
+		bOk = KWContinuous::ContinuousToExactInt(cDeploymentAttributeIndex, nAttributeIndex);
 		if (not bOk)
 		{
 			AddError(sTmp + "The data grid variable index (" +
@@ -615,8 +615,8 @@ Symbol KWDRPredictedPartId::ComputeSymbolResult(const KWObject* kwoObject) const
 		// Acces aux parametres necessaires
 		dataGridRule =
 		    cast(KWDRDataGrid*, dataGridDeploymentRule->GetFirstOperand()->GetStructureValue(kwoObject));
-		nDeploymentAttributeIndex =
-		    (int)floor(dataGridDeploymentRule->GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+		nDeploymentAttributeIndex = KWContinuous::ContinuousToBoundedInt(
+		    dataGridDeploymentRule->GetSecondOperand()->GetContinuousValue(kwoObject));
 
 		// Calcul des Ids de la partition
 		svPartIds.SetSize(dataGridRule->GetAttributePartNumberAt(nDeploymentAttributeIndex));
@@ -825,13 +825,13 @@ boolean KWDRPredictedPartFrequenciesAt::CheckOperandsCompleteness(const KWClass*
 		// Acces a l'index de deploiement, en passant a un index "interne" entre 0 et K-1 (deja verifie dans la
 		// classe ancetre)
 		cDeploymentAttributeIndex = dataGridDeploymentRule->GetOperandAt(1)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cDeploymentAttributeIndex, nDeploymentAttributeIndex);
+		bOk = KWContinuous::ContinuousToExactInt(cDeploymentAttributeIndex, nDeploymentAttributeIndex);
 		assert(bOk);
 		assert(1 <= nDeploymentAttributeIndex and nDeploymentAttributeIndex <= nDataGridAttributeNumber);
 
 		// Acces a l'index de distribution, en passant a un index "interne" entre 0 et K-1
 		cDistributionAttributeIndex = GetOperandAt(1)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cDistributionAttributeIndex, nDistributionAttributeIndex);
+		bOk = KWContinuous::ContinuousToExactInt(cDistributionAttributeIndex, nDistributionAttributeIndex);
 
 		// Test de validite de l'index de distribution
 		if (not bOk)

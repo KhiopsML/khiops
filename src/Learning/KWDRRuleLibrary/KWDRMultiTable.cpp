@@ -865,7 +865,7 @@ KWObject* KWDRTableAt::ComputeObjectResult(const KWObject* kwoObject, const KWLo
 	if (oaContainedObjects != NULL)
 	{
 		// Recherche du rang
-		nIndex = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+		nIndex = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousValue(kwoObject));
 
 		// On renvoie l'objet si son rang est valide
 		if (1 <= nIndex and nIndex <= oaContainedObjects->GetSize())
@@ -1700,16 +1700,19 @@ ObjectArray* KWDRTableExtraction::ComputeObjectArrayResult(const KWObject* kwoOb
 		if (cBeginIndex != KWContinuous::GetMissingValue() and cEndIndex != KWContinuous::GetMissingValue())
 		{
 			// Extraction des rangs
-			nBeginIndex = (int)floor(cBeginIndex + 0.5);
-			nEndIndex = (int)floor(cEndIndex + 0.5);
+			nBeginIndex = KWContinuous::ContinuousToBoundedInt(cBeginIndex);
+			nEndIndex = KWContinuous::ContinuousToBoundedInt(cEndIndex);
 
 			// Recadrage sur une plage compatible avec la taille du container
+			// Les rangs sont controles avant d'etre decrementes pour passer en index
+			if (nBeginIndex < 1)
+				nBeginIndex = 1;
 			nBeginIndex--;
-			if (nBeginIndex < 0)
-				nBeginIndex = 0;
+			if (nEndIndex < 0)
+				nEndIndex = 0;
+			if (nEndIndex > oaContainedObjects->GetSize())
+				nEndIndex = oaContainedObjects->GetSize();
 			nEndIndex--;
-			if (nEndIndex >= oaContainedObjects->GetSize())
-				nEndIndex = oaContainedObjects->GetSize() - 1;
 
 			// Extraction des objets concernes
 			if (nBeginIndex <= nEndIndex)
@@ -2641,7 +2644,7 @@ Symbol KWDRTableModeAt::ComputeSymbolStats(const ObjectArray* oaObjects) const
 
 	// Index du mode a rechercher
 	assert(GetOperandAt(2)->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
-	nIndex = (int)floor(GetOperandAt(2)->GetContinuousConstant() + 0.5);
+	nIndex = KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousConstant());
 	if (nIndex < 1)
 		nIndex = 1;
 

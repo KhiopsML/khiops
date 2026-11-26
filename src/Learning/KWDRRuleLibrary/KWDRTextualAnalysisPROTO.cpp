@@ -1074,7 +1074,7 @@ boolean KWDRNGramCounts::CheckOperandsCompleteness(const KWClass* kwcOwnerClass)
 
 		// Operande de la taille de la table de hashage, en deuxieme operande
 		dValue = GetOperandAt(1)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+		bOk = KWContinuous::ContinuousToExactInt(dValue, nValue);
 		if (not bOk)
 		{
 			AddError(sTmp + "Size of hashtable (" + KWContinuous::ContinuousToString(dValue) +
@@ -1098,7 +1098,7 @@ boolean KWDRNGramCounts::CheckOperandsCompleteness(const KWClass* kwcOwnerClass)
 		if (bOk and GetOperandNumber() >= 3)
 		{
 			dValue = GetOperandAt(2)->GetContinuousConstant();
-			bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+			bOk = KWContinuous::ContinuousToExactInt(dValue, nValue);
 			if (not bOk)
 			{
 				AddError(sTmp + "Length of ngrams (" + KWContinuous::ContinuousToString(dValue) +
@@ -1406,7 +1406,7 @@ boolean KWDRStudyNGramCounts::CheckOperandsCompleteness(const KWClass* kwcOwnerC
 
 		// Operande de longueur max des ngrams
 		dValue = GetOperandAt(3)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(dValue, nValue);
+		bOk = KWContinuous::ContinuousToExactInt(dValue, nValue);
 		if (not bOk)
 		{
 			AddError(sTmp + "Max length of ngrams (" + KWContinuous::ContinuousToString(dValue) +
@@ -1610,7 +1610,7 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 		operand = GetOperandAt(1);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
 		cValue = operand->GetContinuousConstant();
-		bIsInt = KWContinuous::ContinuousToInt(cValue, nValue);
+		bIsInt = KWContinuous::ContinuousToExactInt(cValue, nValue);
 		if (not bIsInt or (nValue != 0 and nValue != 1))
 		{
 			bOk = false;
@@ -1622,7 +1622,7 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 		operand = GetOperandAt(2);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
 		cValue = operand->GetContinuousConstant();
-		bIsInt = KWContinuous::ContinuousToInt(cValue, nValue);
+		bIsInt = KWContinuous::ContinuousToExactInt(cValue, nValue);
 		if (not bIsInt or (nValue != 0 and nValue != 1))
 		{
 			bOk = false;
@@ -1666,7 +1666,7 @@ boolean KWDRExtractWords::CheckOperandsDefinition() const
 		operand = GetOperandAt(5);
 		assert(operand->GetOrigin() == KWDerivationRuleOperand::OriginConstant);
 		cValue = operand->GetContinuousConstant();
-		bIsInt = KWContinuous::ContinuousToInt(cValue, nValue);
+		bIsInt = KWContinuous::ContinuousToExactInt(cValue, nValue);
 		if (not bIsInt or nValue <= 0)
 		{
 			bOk = false;

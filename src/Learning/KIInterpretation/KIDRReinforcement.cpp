@@ -748,11 +748,12 @@ void KIDRReinforcementRule::Compile(KWClass* kwcOwnerClass)
 	// Calcul du rang du second parametre si le troisieme operande est constant
 	if (GetOperandNumber() >= 3 and GetOperandAt(2)->GetOrigin() == KWDerivationRuleOperand::OriginConstant)
 	{
-		nConstantReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousConstant() - 0.5);
+		nConstantReinforcementRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousConstant());
 
 		// On verifie sa validite
-		if (nConstantReinforcementRank < 0 or
-		    nConstantReinforcementRank >= classifierReinforcer->GetReinforcementAttributeNumber())
+		if (nConstantReinforcementRank < 1 or
+		    nConstantReinforcementRank > classifierReinforcer->GetReinforcementAttributeNumber())
 			nConstantReinforcementRank = -1;
 	}
 }
@@ -836,11 +837,14 @@ Symbol KIDRReinforcementAttributeAt::ComputeSymbolResult(const KWObject* kwoObje
 		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nReinforcementRank = nConstantReinforcementRank;
 	if (nReinforcementRank == -1)
-		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nReinforcementRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Attribut de renforcement si valide
-	if (nTargetValueRank >= 0)
-		return classifierReinforcer->GetRankedReinforcementAttributeAt(nTargetValueRank, nReinforcementRank);
+	if (nTargetValueRank >= 0 and nReinforcementRank >= 1 and
+	    nReinforcementRank <= classifierReinforcer->GetReinforcementAttributeNumber())
+		return classifierReinforcer->GetRankedReinforcementAttributeAt(nTargetValueRank,
+									       nReinforcementRank - 1);
 	// Valeur manquante sinon
 	else
 		return Symbol();
@@ -883,11 +887,13 @@ Symbol KIDRReinforcementPartAt::ComputeSymbolResult(const KWObject* kwoObject) c
 		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nReinforcementRank = nConstantReinforcementRank;
 	if (nReinforcementRank == -1)
-		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nReinforcementRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Partie de l'attribut de renforcement si valide
-	if (nTargetValueRank >= 0)
-		return classifierReinforcer->GetRankedReinforcementPartAt(nTargetValueRank, nReinforcementRank);
+	if (nTargetValueRank >= 0 and nReinforcementRank >= 1 and
+	    nReinforcementRank <= classifierReinforcer->GetReinforcementAttributeNumber())
+		return classifierReinforcer->GetRankedReinforcementPartAt(nTargetValueRank, nReinforcementRank - 1);
 	// Valeur manquante sinon
 	else
 		return Symbol();
@@ -930,11 +936,14 @@ Continuous KIDRReinforcementFinalScoreAt::ComputeContinuousResult(const KWObject
 		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nReinforcementRank = nConstantReinforcementRank;
 	if (nReinforcementRank == -1)
-		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nReinforcementRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Score final de l'attribut de renforcement si valide
-	if (nTargetValueRank >= 0)
-		return classifierReinforcer->GetRankedReinforcementFinalScoreAt(nTargetValueRank, nReinforcementRank);
+	if (nTargetValueRank >= 0 and nReinforcementRank >= 1 and
+	    nReinforcementRank <= classifierReinforcer->GetReinforcementAttributeNumber())
+		return classifierReinforcer->GetRankedReinforcementFinalScoreAt(nTargetValueRank,
+										nReinforcementRank - 1);
 	// Valeur manquante sinon
 	else
 		return KWContinuous::GetMissingValue();
@@ -977,12 +986,14 @@ Continuous KIDRReinforcementClassChangeTagAt::ComputeContinuousResult(const KWOb
 		nTargetValueRank = classifierReinforcer->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nReinforcementRank = nConstantReinforcementRank;
 	if (nReinforcementRank == -1)
-		nReinforcementRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nReinforcementRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Indicateur de changement de classe de l'attribut de renforcement si valide
-	if (nTargetValueRank >= 0)
+	if (nTargetValueRank >= 0 and nReinforcementRank >= 1 and
+	    nReinforcementRank <= classifierReinforcer->GetReinforcementAttributeNumber())
 		return classifierReinforcer->GetRankedReinforcementClassChangeTagAt(nTargetValueRank,
-										    nReinforcementRank);
+										    nReinforcementRank - 1);
 	// Valeur manquante sinon
 	else
 		return KWContinuous::GetMissingValue();

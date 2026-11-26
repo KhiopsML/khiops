@@ -231,7 +231,7 @@ boolean KWDRDataGridBlock::CheckOperandsFamily(const KWDerivationRule* ruleFamil
 		for (nIndex = 0; nIndex < nVarKeyNumber; nIndex++)
 		{
 			cVarKey = continuousValueKeyRule->GetValueAt(nIndex);
-			bOk = KWContinuous::ContinuousToInt(cVarKey, nVarKey);
+			bOk = KWContinuous::ContinuousToExactInt(cVarKey, nVarKey);
 
 			// La VarKey doit etre entiere
 			if (not bOk)

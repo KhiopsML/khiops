@@ -344,8 +344,8 @@ Symbol KWDRSymbolSwitch::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	require(IsCompiled());
 
-	// Calcul de l'index
-	nIndex = (int)floor(GetOperandAt(0)->GetContinuousValue(kwoObject) + 0.5);
+	// Calcul de l'index, avec une valeur manquante ou trop grande convertie en index hors bornes
+	nIndex = KWContinuous::ContinuousToBoundedInt(GetOperandAt(0)->GetContinuousValue(kwoObject));
 
 	// Valeur si index valide
 	if (1 <= nIndex and nIndex <= GetOperandNumber() - 2)
@@ -383,8 +383,8 @@ Continuous KWDRContinuousSwitch::ComputeContinuousResult(const KWObject* kwoObje
 
 	require(IsCompiled());
 
-	// Calcul de l'index
-	nIndex = (int)floor(GetOperandAt(0)->GetContinuousValue(kwoObject) + 0.5);
+	// Calcul de l'index, avec une valeur manquante ou trop grande convertie en index hors bornes
+	nIndex = KWContinuous::ContinuousToBoundedInt(GetOperandAt(0)->GetContinuousValue(kwoObject));
 
 	// Valeur si index valide
 	if (1 <= nIndex and nIndex <= GetOperandNumber() - 2)

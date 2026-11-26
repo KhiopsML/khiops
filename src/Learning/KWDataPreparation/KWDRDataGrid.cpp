@@ -950,7 +950,7 @@ boolean KWDRFrequencies::CheckOperandsDefinition() const
 
 			// Verification de la valeur entiere de l'operande
 			cValue = operand->GetContinuousConstant();
-			bOk = KWContinuous::ContinuousToInt(cValue, nValue);
+			bOk = KWContinuous::ContinuousToExactInt(cValue, nValue);
 			if (not bOk)
 			{
 				assert(bOk == false);
@@ -2187,22 +2187,20 @@ Continuous KWDRSourceConditionalInfo::ComputeContinuousResult(const KWObject* kw
 
 	// Acces aux operandes
 	dataGridStats = cast(KWDRDataGridStats*, GetFirstOperand()->GetStructureValue(kwoObject));
-	nTargetIndex = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
-
-	// On passe de l'index "externe" (entre 1 et J) a un index "interne" (entre 0 et J-1)
-	nTargetIndex = nTargetIndex - 1;
+	nTargetIndex = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousValue(kwoObject));
 
 	// Calcul de l'information conditionnelle s'il y a au moins une cellule source
 	// Sinon, la grille ne contient que des attributs cibles, et l'information
 	// conditionnelle de la source vaut 0
+	// L'index externe (entre 1 et J) est converti en index interne (entre 0 et J-1) apres controle de validite
 	cSourceConditionalInfo = 0;
-	if (dataGridStats->GetDataGridSourceCellNumber() > 1 and 0 <= nTargetIndex and
-	    nTargetIndex < dataGridStats->GetDataGridTargetCellNumber())
+	if (dataGridStats->GetDataGridSourceCellNumber() > 1 and 1 <= nTargetIndex and
+	    nTargetIndex <= dataGridStats->GetDataGridTargetCellNumber())
 	{
 		assert(0 <= dataGridStats->GetCellIndex() and
 		       dataGridStats->GetCellIndex() < dataGridStats->GetDataGridSourceCellNumber());
-		cSourceConditionalInfo =
-		    -dataGridStats->GetDataGridSourceConditionalLogProbAt(dataGridStats->GetCellIndex(), nTargetIndex);
+		cSourceConditionalInfo = -dataGridStats->GetDataGridSourceConditionalLogProbAt(
+		    dataGridStats->GetCellIndex(), nTargetIndex - 1);
 	}
 	return cSourceConditionalInfo;
 }

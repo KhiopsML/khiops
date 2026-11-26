@@ -390,7 +390,7 @@ boolean KWDRTextInit::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) co
 
 		// Taille du texe a generer
 		cValue = GetFirstOperand()->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cValue, nValue);
+		bOk = KWContinuous::ContinuousToExactInt(cValue, nValue);
 		if (not bOk)
 		{
 			AddError(sTmp + "Size of text (" + KWContinuous::ContinuousToString(cValue) +

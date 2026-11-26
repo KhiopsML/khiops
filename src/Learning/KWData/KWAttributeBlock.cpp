@@ -345,7 +345,7 @@ boolean KWAttributeBlock::Check() const
 						// Conversion en entier
 						dAttributeKey = attribute->GetConstMetaData()->GetDoubleValueAt(
 						    sAttributeKeyMetaDataKey);
-						bOk = KWContinuous::ContinuousToInt(dAttributeKey, nAttributeKey);
+						bOk = KWContinuous::ContinuousToExactInt(dAttributeKey, nAttributeKey);
 
 						// On memorise egalement sous forme chaine de caracteres, pour les test
 						// d'unicite et pour les messages utilisant la valeur de cle entiere

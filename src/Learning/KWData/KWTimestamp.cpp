@@ -51,7 +51,10 @@ boolean Timestamp::AddSeconds(double dSeconds)
 	boolean bOk = true;
 	const double dEpsilon = 1e-5;
 	const double dDaySecondNumber = 86400.0;
+	const double dMaxDayNumber = 1e9;
+	const double dMaxSeconds = dMaxDayNumber * dDaySecondNumber;
 	int nDays;
+	double dDays;
 	double dDaySeconds;
 	double dTotalSeconds;
 	int nHour;
@@ -59,23 +62,34 @@ boolean Timestamp::AddSeconds(double dSeconds)
 
 	require(Check());
 
-	// Nombre de secondes du jour en cours
-	dDaySeconds = GetTime().GetDaySecond();
-
-	// Nombre total de seconde ajoute depuis 00:00:00
-	dTotalSeconds = dDaySeconds + dSeconds;
-
-	// Calcul du nombre de jours a ajouter ou retrancher
-	if (dTotalSeconds >= 0)
-		nDays = (int)floor(dTotalSeconds / dDaySecondNumber);
+	// Echec si le nombre de secondes est NaN (secondes manquantes) ou depasse dMaxSeconds (dMaxDayNumber jours),
+	// borne bien au dela des dates valides, pour eviter un debordement lors de la conversion en int
+	nDays = 0;
+	dTotalSeconds = 0;
+	if (p_isnan(dSeconds) or fabs(dSeconds) > dMaxSeconds)
+		bOk = false;
+	// Sinon, ajout des jours a la date
 	else
-		nDays = -(int)ceil(-dTotalSeconds / dDaySecondNumber);
+	{
+		// Nombre de secondes du jour en cours
+		dDaySeconds = GetTime().GetDaySecond();
 
-	// Ajout des jours a la date
-	GetInternalDate().AddDays(nDays);
+		// Nombre total de seconde ajoute depuis 00:00:00
+		dTotalSeconds = dDaySeconds + dSeconds;
+
+		// Calcul du nombre de jours a ajouter ou retrancher
+		if (dTotalSeconds >= 0)
+			dDays = floor(dTotalSeconds / dDaySecondNumber);
+		else
+			dDays = -ceil(-dTotalSeconds / dDaySecondNumber);
+
+		// Ajout des jours a la date
+		nDays = (int)dDays;
+		bOk = GetInternalDate().AddDays(nDays);
+	}
 
 	// Si OK, mise a jour de la Time
-	if (GetDate().Check())
+	if (bOk)
 	{
 		// Calcul du nombre de secondes dans la journee
 		dDaySeconds = dTotalSeconds - dDaySecondNumber * nDays;

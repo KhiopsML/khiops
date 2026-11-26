@@ -167,7 +167,9 @@ int Date::GetAbsoluteDay() const
 boolean Date::AddDays(int nValue)
 {
 	boolean bOk = true;
+	const longint lMaxJulianDayNumber = 100000000;
 	int nJulianDayNumber;
+	longint lJulianDayNumber;
 	int nYear;
 	int nMonth;
 	int nDay;
@@ -178,32 +180,39 @@ boolean Date::AddDays(int nValue)
 	// Recherche du nombre de jours total
 	nJulianDayNumber = GetJulianDayNumber();
 
-	// Ajout du nombre de jours
-	nJulianDayNumber += nValue;
-
-	// Conversion du jour Julien en jour Gregorien (cf. http://en.wikipedia.org/wiki/Julian_day)
-	f = nJulianDayNumber + 1401;
-	f = f + (((4 * nJulianDayNumber + 274277) / 146097) * 3) / 4 - 38;
-	e = 4 * f + 3;
-	g = (e % 1461) / 4;
-	h = 5 * g + 2;
-	nDay = (h % 153) / 5 + 1;
-	nMonth = (h / 153 + 2) % 12 + 1;
-	nYear = e / 1461 - 4716 + (14 - nMonth) / 12;
-
-	// Initialisation si annee valide
-	if (1 <= nYear and nYear <= DateTime::nMaxYear)
-	{
-		SetYear(nYear);
-		SetMonth(nMonth);
-		SetDay(nDay);
-	}
-	// Sinon, reinitialistaion
+	// Ajout du nombre de jours en longint, avec borne superieure (bien au dela de l'annee max)
+	// pour eviter tout debordement des calculs en int ci-dessous
+	lJulianDayNumber = (longint)nJulianDayNumber + nValue;
+	if (lJulianDayNumber < 0 or lJulianDayNumber > lMaxJulianDayNumber)
+		bOk = false;
 	else
 	{
-		Reset();
-		bOk = false;
+		nJulianDayNumber = (int)lJulianDayNumber;
+
+		// Conversion du jour Julien en jour Gregorien (cf. http://en.wikipedia.org/wiki/Julian_day)
+		f = nJulianDayNumber + 1401;
+		f = f + (((4 * nJulianDayNumber + 274277) / 146097) * 3) / 4 - 38;
+		e = 4 * f + 3;
+		g = (e % 1461) / 4;
+		h = 5 * g + 2;
+		nDay = (h % 153) / 5 + 1;
+		nMonth = (h / 153 + 2) % 12 + 1;
+		nYear = e / 1461 - 4716 + (14 - nMonth) / 12;
+
+		// Initialisation si annee valide
+		if (1 <= nYear and nYear <= DateTime::nMaxYear)
+		{
+			SetYear(nYear);
+			SetMonth(nMonth);
+			SetDay(nDay);
+		}
+		else
+			bOk = false;
 	}
+
+	// Reinitialisation si non valide
+	if (not bOk)
+		Reset();
 	return bOk;
 }
 

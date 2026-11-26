@@ -324,6 +324,7 @@ Date KWDRAddDays::ComputeDateResult(const KWObject* kwoObject) const
 {
 	Date dtDate;
 	Continuous cDays;
+	int nDays;
 
 	require(IsCompiled());
 
@@ -331,9 +332,9 @@ Date KWDRAddDays::ComputeDateResult(const KWObject* kwoObject) const
 	dtDate = GetOperandAt(0)->GetDateValue(kwoObject);
 	cDays = GetOperandAt(1)->GetContinuousValue(kwoObject);
 
-	// Ajout des jours a la date, si validite des operandes
-	if (dtDate.Check() and cDays != KWContinuous::GetMissingValue())
-		dtDate.AddDays((int)floor(cDays + 0.5));
+	// Ajout des jours a la date, si validite des operandes (nombre de jours entier, ni manquant ni trop grand)
+	if (dtDate.Check() and KWContinuous::ContinuousToExactInt(cDays, nDays))
+		dtDate.AddDays(nDays);
 	// Sinon, on rend une date invalide
 	else
 		dtDate.Reset();
@@ -394,6 +395,9 @@ Date KWDRBuildDate::ComputeDateResult(const KWObject* kwoObject) const
 	Continuous cYear;
 	Continuous cMonth;
 	Continuous cDay;
+	int nYear;
+	int nMonth;
+	int nDay;
 
 	require(IsCompiled());
 
@@ -402,11 +406,11 @@ Date KWDRBuildDate::ComputeDateResult(const KWObject* kwoObject) const
 	cMonth = GetOperandAt(1)->GetContinuousValue(kwoObject);
 	cDay = GetOperandAt(2)->GetContinuousValue(kwoObject);
 
-	// Initialisation de la date
+	// Initialisation de la date, qui reste invalide si une valeur n'est pas entiere, manquante ou trop grande
 	dtDate.Reset();
-	if (cYear != KWContinuous::GetMissingValue() and cMonth != KWContinuous::GetMissingValue() and
-	    cDay != KWContinuous::GetMissingValue())
-		dtDate.Init((int)floor(cYear + 0.5), (int)floor(cMonth + 0.5), (int)floor(cDay + 0.5));
+	if (KWContinuous::ContinuousToExactInt(cYear, nYear) and KWContinuous::ContinuousToExactInt(cMonth, nMonth) and
+	    KWContinuous::ContinuousToExactInt(cDay, nDay))
+		dtDate.Init(nYear, nMonth, nDay);
 	return dtDate;
 }
 
@@ -653,19 +657,21 @@ Time KWDRBuildTime::ComputeTimeResult(const KWObject* kwoObject) const
 	Continuous cHour;
 	Continuous cMinute;
 	Continuous cSecond;
+	int nHour;
+	int nMinute;
 
 	require(IsCompiled());
 
-	// Recherche des valeurs an, mois, jour
+	// Recherche des valeurs heure, minute, seconde
 	cHour = GetOperandAt(0)->GetContinuousValue(kwoObject);
 	cMinute = GetOperandAt(1)->GetContinuousValue(kwoObject);
 	cSecond = GetOperandAt(2)->GetContinuousValue(kwoObject);
 
-	// Initialisation de la time
+	// Initialisation de la time, qui reste invalide si l'heure ou la minute n'est pas entiere, manquante ou trop
+	// grande, ou si la seconde (qui peut etre fractionnaire) est manquante ou hors bornes
 	tmTime.Reset();
-	if (cHour != KWContinuous::GetMissingValue() and cMinute != KWContinuous::GetMissingValue() and
-	    cSecond != KWContinuous::GetMissingValue())
-		tmTime.Init((int)floor(cHour + 0.5), (int)floor(cMinute + 0.5), (int)floor(cSecond + 0.5));
+	if (KWContinuous::ContinuousToExactInt(cHour, nHour) and KWContinuous::ContinuousToExactInt(cMinute, nMinute))
+		tmTime.Init(nHour, nMinute, cSecond);
 	return tmTime;
 }
 
@@ -1067,11 +1073,8 @@ TimestampTZ KWDRSetTimeZoneMinutes::ComputeTimestampTZResult(const KWObject* kwo
 	if (tstzTimestamp.Check())
 	{
 		cMinutes = GetSecondOperand()->GetContinuousValue(kwoObject);
-		if (cMinutes != KWContinuous::GetMissingValue())
-		{
-			nMinutes = int(floor(cMinutes + 0.5));
+		if (KWContinuous::ContinuousToExactInt(cMinutes, nMinutes))
 			bOk = tstzTimestamp.SetTimeZoneTotalMinutes(nMinutes);
-		}
 	}
 	if (not bOk)
 		tstzTimestamp.Reset();
@@ -1167,6 +1170,7 @@ TimestampTZ KWDRAddSecondsTSTZ::ComputeTimestampTZResult(const KWObject* kwoObje
 {
 	TimestampTZ tsTimestampTZ;
 	Continuous cSeconds;
+	boolean bOk;
 
 	require(IsCompiled());
 
@@ -1174,13 +1178,15 @@ TimestampTZ KWDRAddSecondsTSTZ::ComputeTimestampTZResult(const KWObject* kwoObje
 	tsTimestampTZ = GetOperandAt(0)->GetTimestampTZValue(kwoObject);
 	cSeconds = GetOperandAt(1)->GetContinuousValue(kwoObject);
 
-	// Ajout des jours a la timestampTZ, si validite des operandes
-	if (tsTimestampTZ.Check() and cSeconds != KWContinuous::GetMissingValue())
-		tsTimestampTZ.AddSeconds((int)floor(cSeconds + 0.5));
-	// Sinon, on rend un timestampTZ invalide
-	else
-		tsTimestampTZ.Reset();
+	// Ajout des secondes (qui peuvent etre fractionnaires) a la timestampTZ, si elle est valide
+	// L'ajout echoue si le nombre de secondes est manquant ou trop grand
+	bOk = tsTimestampTZ.Check();
+	if (bOk)
+		bOk = tsTimestampTZ.AddSeconds(cSeconds);
 
+	// On rend une timestampTZ invalide en cas d'echec
+	if (not bOk)
+		tsTimestampTZ.Reset();
 	return tsTimestampTZ;
 }
 
@@ -1246,11 +1252,8 @@ TimestampTZ KWDRBuildTimestampTZ::ComputeTimestampTZResult(const KWObject* kwoOb
 	if (tsTimestamp.Check())
 	{
 		cMinutes = GetSecondOperand()->GetContinuousValue(kwoObject);
-		if (cMinutes != KWContinuous::GetMissingValue())
-		{
-			nMinutes = int(floor(cMinutes + 0.5));
+		if (KWContinuous::ContinuousToExactInt(cMinutes, nMinutes))
 			tstzTimestamp.Init(tsTimestamp, nMinutes);
-		}
 	}
 	return tstzTimestamp;
 }
