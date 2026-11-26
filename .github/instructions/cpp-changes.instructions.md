@@ -12,6 +12,10 @@ Before editing C++ code, consult the relevant sections of the [Khiops Coding Gui
 
 For module-specific architecture and naming, follow the [workspace instructions](../copilot-instructions.md) and nearby code.
 
+Prefer simple, readable designs over local patches: consider the surrounding control flow and data representation,
+use familiar and meaningful names, and avoid unnecessary conversions. Prefer a single exit when it improves clarity,
+but do not force it when it would make the code harder to read.
+
 ## Khiops-Specific Practices
 
 - Use the `Norm` contract macros (`require`, `ensure`, `assert`, `check`, and `cast`) for preconditions, postconditions, and runtime checks. Assertions are active in debug builds only.

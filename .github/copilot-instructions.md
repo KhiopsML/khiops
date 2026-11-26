@@ -63,6 +63,10 @@ ctest --preset macos-clang-debug
 
 If the user's stated requirement conflicts with a linked issue or document, explain the discrepancy and ask which source to follow before changing behavior.
 
+When simplifying or refactoring, preserve behavior, including boundary cases. If an unrelated behavior change appears necessary, explain it and ask before making it.
+
+When assessing whether a feature is unused, distinguish code references, tests, documentation and possible external usage. Report the scope and limits of the search; absence of local usage does not establish external compatibility.
+
 ## Recommended: Use Specialized Agents
 
 For streamlined workflow:
