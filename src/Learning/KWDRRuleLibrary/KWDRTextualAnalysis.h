@@ -11,13 +11,12 @@ class KWDRTextListWords;
 class KWDRTextTokens;
 class KWDRTextListTokens;
 class KWDRTextInit;
+class KWDRTokenCounts;
 
 #include "KWDerivationRule.h"
 #include "KWValueBlock.h"
 #include "TextService.h"
 #include "KWTextTokenizer.h"
-
-#include "KWDRTextualAnalysisPROTO.h"
 
 // Enregistrement de ces regles
 void KWDRRegisterTextualAnalysisRules();
@@ -201,4 +200,46 @@ public:
 
 	// Redefinition de methodes virtuelles
 	boolean CheckOperandsCompleteness(const KWClass* kwcOwnerClass) const override;
+};
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTokenCounts
+// ATTENTION: REGLE INTERNE NON DOCUMENTEE, GARDEE UNIQUEMENT A DES FINS DE TESTS DES DONNEES SPARSE
+// Calcul l'effectif de chaque token d'une chaine de caracteres
+// Un token est une suite de caracteres, precede et suivi
+// de caracteres separateurs
+// Les cles de variables en parametres permettent de specifier
+// les tokens a compter effectivement
+class KWDRTokenCounts : public KWDerivationRule
+{
+public:
+	// Constructeur
+	KWDRTokenCounts();
+	~KWDRTokenCounts();
+
+	// Type de cle utilisee pour les variables du bloc
+	int GetVarKeyType() const override;
+
+	// Creation
+	KWDerivationRule* Create() const override;
+
+	// Calcul de l'attribut derive
+	// Le resultat appartient a l'appelant
+	KWContinuousValueBlock*
+	ComputeContinuousValueBlockResult(const KWObject* kwoObject,
+					  const KWIndexedKeyBlock* indexedKeyBlock) const override;
+	Continuous GetValueBlockContinuousDefaultValue() const override;
+
+	// Calcul des compte par token pour une valeur Symbol
+	KWContinuousValueBlock* ComputeTokenCounts(const Symbol& sValue,
+						   const KWIndexedKeyBlock* indexedKeyBlock) const;
+
+	// Estimation de la memoire utilisee
+	longint GetUsedMemory() const override;
+
+	// Methode de test
+	static void Test();
+
+	// Test unitaire du compte de tokens pour une regle correctement parametree
+	void TestCount(const ALString& sInputValue, const KWIndexedKeyBlock* indexedKeyBlock);
 };
