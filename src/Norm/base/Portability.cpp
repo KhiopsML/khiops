@@ -345,7 +345,7 @@ static void FormatErrorMessage(char* sErrorMessage)
 
 // Recherche le path de l'exe system associe a une extension (ex: ".txt")
 // Renvoie chaine vide si non trouve
-static const char* GetFileOpenAssocation(const char* sExtension)
+static const char* GetFileOpenAssociation(const char* sExtension)
 {
 	DWORD size = BUFFER_LENGTH;
 	char* sFileAssociation = StandardGetBuffer();
@@ -465,14 +465,14 @@ int OpenApplication(const char* sApplicationExeName, const char* sApplicationLab
 	ok = 0;
 	if (sFileExtension != NULL && strlen(sFileExtension) > 1)
 	{
-		sFileAssociation = GetFileOpenAssocation(sFileExtension);
+		sFileAssociation = GetFileOpenAssociation(sFileExtension);
 		ok = sFileAssociation[0] != '\0';
 	}
 
 	// On utilise l'extension de l'editeur de texte par defaut si non trouve et qu'il n'y a pas d'exe specifie
 	if (not ok && sApplicationExeName[0] == '\0')
 	{
-		sFileAssociation = GetFileOpenAssocation(".txt");
+		sFileAssociation = GetFileOpenAssociation(".txt");
 		ok = sFileAssociation[0] != '\0';
 	}
 

@@ -36,7 +36,7 @@ void CCLearningProject::OpenLearningEnvironnement()
 	    "<li>Enter the name of the input file in the 'Data table file' field of the 'Database' pane</li> ";
 	sQuickStartInfo += "<li>Insert the coclustering variables to analyze in the 'Parameters' pane</li> ";
 	sQuickStartInfo += "<li>Click on the 'Train coclustering' button</li> ";
-	sQuickStartInfo += "<li>Click on the 'Visualize results' button in the 'Results' pane</li> ";
+	sQuickStartInfo += "<li>Click on the 'Visualize report' button in the 'Results' pane</li> ";
 	sQuickStartInfo += "<h3>What is a data dictionary?</h3> ";
 	sQuickStartInfo += "<p>A data dictionary allows you to define the type and name of variables in a data file, "
 			   "with additional key features:</p> ";
@@ -66,7 +66,7 @@ void CCLearningProject::OpenLearningEnvironnement()
 			   "the dictionaries of a dictionary file.</p> ";
 	sQuickStartInfo += "<h4>Use a data dictionary</h4> ";
 	sQuickStartInfo += "<li>Click on the 'Open' sub-menu of the 'Data dictionary' menu</li> ";
-	sQuickStartInfo += "<li>Choose the dictionary file (extentions .kdic)</li> ";
+	sQuickStartInfo += "<li>Choose the dictionary file (extensions .kdic)</li> ";
 	sQuickStartInfo += "<li>Enter the name the dictionary in the 'Analysis dictionary' field of the 'Train "
 			   "database' pane</li> ";
 	sQuickStartInfo += "</html> ";
@@ -92,12 +92,12 @@ void CCLearningProject::OpenLearningEnvironnement()
 	    "<p> The modeling results of Khiops (.khj) and Khiops Coclustering (.khcj) are stored using </p> "
 	    "<p> the JSON format. Dictionaries files (.kdic) may also be exported to JSON format (.kdicj). </p> "
 	    "<p> These JSON files may be used with the Khiops Python library, </p>"
-	    "<p> the Khiops Visualization tools (see below) or other custom external tools. </p>";
+	    "<p> the Khiops Desktop Visualization tool (see below) or other custom external tools. </p>";
 
 	// Outils de visualisation
-	sDocumentation += "<h4> Visualization Tools </h4> "
+	sDocumentation += "<h4> Visualization Tool </h4> "
 			  "<p> The modeling result files (.khj and .khcj) can be visualized </p>"
-			  "<p> using the Khiops Visualization or Khiops Covisualization tools. </p>";
+			  "<p> using the Khiops Desktop Visualization Application. </p>";
 
 	// Librairie Python
 	sDocumentation += "<h4> Khiops Python Library </h4> "

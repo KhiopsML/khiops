@@ -220,7 +220,7 @@ public:
 	// Type de cle utilisee pour les variables du bloc
 	int GetVarKeyType() const override;
 
-	// Acces en consultation a la regle de type TableStats, a l'origine de l'extention en TablePartitionStats
+	// Acces en consultation a la regle de type TableStats, a l'origine de l'extension en TablePartitionStats
 	// Exemple: TableCount, TableMean...
 	const KWDRTableStats* GetTableStatsRule() const;
 
