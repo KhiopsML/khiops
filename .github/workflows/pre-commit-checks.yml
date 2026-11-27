@@ -11,5 +11,7 @@ jobs:
         uses: actions/checkout@v7
       - name: Setup Python
         uses: actions/setup-python@v7
+        with:
+          check-latest: true
       - name: Run pre-commit checks
         uses: pre-commit/action@v3.0.1
