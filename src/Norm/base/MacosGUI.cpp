@@ -19,6 +19,34 @@ namespace
 {
 // Indicateur partage entre le thread principal et le thread secondaire
 std::atomic<bool> bGUIEventLoopRunning(false);
+
+// Activer l'application et sa fenetre sur la file principale apres la mise a jour AppKit.
+void MacosActivateWindow(void* context)
+{
+	id window = (id)context;
+
+	// Ne pas rouvrir une fenetre fermee depuis la reception de la notification.
+	if (((BOOL (*)(id, SEL))objc_msgSend)(window, sel_registerName("isVisible")))
+	{
+		id nsApp = ((id (*)(id, SEL))objc_msgSend)((id)objc_getClass("NSApplication"),
+							   sel_registerName("sharedApplication"));
+		((void (*)(id, SEL, long))objc_msgSend)(nsApp, sel_registerName("setActivationPolicy:"), 0L);
+
+		// Preferer l'API macOS 14+, avec repli pour les versions anterieures.
+		if (((BOOL (*)(id, SEL, SEL))objc_msgSend)(nsApp, sel_registerName("respondsToSelector:"),
+							   sel_registerName("activate")))
+			((void (*)(id, SEL))objc_msgSend)(nsApp, sel_registerName("activate"));
+		else
+			((void (*)(id, SEL, BOOL))objc_msgSend)(nsApp, sel_registerName("activateIgnoringOtherApps:"),
+								(BOOL)1);
+
+		// L'activation de l'application ne garantit pas le focus clavier de sa fenetre.
+		((void (*)(id, SEL, id))objc_msgSend)(window, sel_registerName("makeKeyAndOrderFront:"), (id)nil);
+	}
+
+	// Liberer la reference conservee avant la planification de cet appel.
+	((void (*)(id, SEL))objc_msgSend)(window, sel_registerName("release"));
+}
 } // namespace
 #endif
 
@@ -42,15 +70,9 @@ void MacosRunGUI(MacosGUIThreadFunction function, void* context)
 		if (TaskProgression::GetManager() == NULL and not TaskProgression::IsStarted())
 			TaskProgression::SetManager(UITaskProgression::GetManager());
 
-		// Memoriser l'application au premier plan avant que Khiops ne prenne le focus.
-		id workspace = ((id (*)(id, SEL))objc_msgSend)((id)objc_getClass("NSWorkspace"),
-							       sel_registerName("sharedWorkspace"));
-		id previousApplication =
-		    ((id (*)(id, SEL))objc_msgSend)(workspace, sel_registerName("frontmostApplication"));
 		id notificationCenter = ((id (*)(id, SEL))objc_msgSend)((id)objc_getClass("NSNotificationCenter"),
 									sel_registerName("defaultCenter"));
 		__block id activationObserver = nil;
-		__block id resignationObserver = nil;
 		id nsApp = ((id (*)(id, SEL))objc_msgSend)((id)objc_getClass("NSApplication"),
 							   sel_registerName("sharedApplication"));
 		if (nsApp)
@@ -91,48 +113,28 @@ void MacosRunGUI(MacosGUIThreadFunction function, void* context)
 								      mainMenu);
 			}
 
-			// Au premier focus, un changement reel d'application debloque les menus macOS avec AWT embarque.
+			// L'initialisation AWT peut annuler l'activation demandee au lancement.
+			// Attendre une fenetre visible plutot que sa prise de focus, qui peut justement ne jamais arriver.
 			id notificationName = ((id (*)(id, SEL, const char*))objc_msgSend)(
 			    (id)objc_getClass("NSString"), sel_registerName("stringWithUTF8String:"),
-			    "NSWindowDidBecomeKeyNotification");
+			    "NSWindowDidUpdateNotification");
 			activationObserver = ((id (*)(id, SEL, id, id, id, void (^)(id)))objc_msgSend)(
 			    notificationCenter, sel_registerName("addObserverForName:object:queue:usingBlock:"),
 			    notificationName, nil, nil, ^(id notification) {
+			      id window = ((id (*)(id, SEL))objc_msgSend)(notification, sel_registerName("object"));
+			      if (not((BOOL (*)(id, SEL))objc_msgSend)(window, sel_registerName("isVisible")))
+				      return;
+
+			      // Activation unique: les rafraichissements suivants ne doivent pas reprendre le focus.
 			      ((void (*)(id, SEL, id))objc_msgSend)(
 				  notificationCenter, sel_registerName("removeObserver:"), activationObserver);
 			      activationObserver = nil;
-			      if (previousApplication == nil or
-				  ((int (*)(id, SEL))objc_msgSend)(previousApplication,
-								   sel_registerName("processIdentifier")) == getpid())
-				      return;
-			      dispatch_async(dispatch_get_main_queue(), ^{
-				// Attendre la desactivation effective avant de rendre le focus a Khiops, sans delai fixe.
-				id resignationName = ((id (*)(id, SEL, const char*))objc_msgSend)(
-				    (id)objc_getClass("NSString"), sel_registerName("stringWithUTF8String:"),
-				    "NSApplicationDidResignActiveNotification");
-				resignationObserver = ((id (*)(id, SEL, id, id, id, void (^)(id)))objc_msgSend)(
-				    notificationCenter, sel_registerName("addObserverForName:object:queue:usingBlock:"),
-				    resignationName, nsApp, nil, ^(id resignationNotification) {
-				      ((void (*)(id, SEL, id))objc_msgSend)(
-					  notificationCenter, sel_registerName("removeObserver:"), resignationObserver);
-				      resignationObserver = nil;
-				      dispatch_async(dispatch_get_main_queue(), ^{
-					((void (*)(id, SEL, BOOL))objc_msgSend)(
-					    nsApp, sel_registerName("activateIgnoringOtherApps:"), (BOOL)1);
-				      });
-				    });
 
-				// NSApplicationActivateIgnoringOtherApps = 2 pour provoquer le changement de focus.
-				BOOL bActivated = ((BOOL (*)(id, SEL, unsigned long))objc_msgSend)(
-				    previousApplication, sel_registerName("activateWithOptions:"), 2UL);
-				if (not bActivated and resignationObserver != nil)
-				{
-					((void (*)(id, SEL, id))objc_msgSend)(notificationCenter,
-									      sel_registerName("removeObserver:"),
-									      resignationObserver);
-					resignationObserver = nil;
-				}
-			      });
+			      // Conserver la fenetre jusqu'a l'appel differe, qui la liberera.
+			      ((id (*)(id, SEL))objc_msgSend)(window, sel_registerName("retain"));
+
+			      // Laisser AppKit terminer la mise a jour en cours avant de demander l'activation.
+			      dispatch_async_f(dispatch_get_main_queue(), window, MacosActivateWindow);
 			    });
 		}
 
@@ -158,13 +160,10 @@ void MacosRunGUI(MacosGUIThreadFunction function, void* context)
 			bGUIEventLoopRunning.store(false);
 		}
 
-		// Retirer les observateurs restants si la boucle se termine avant les notifications attendues.
+		// Retirer l'observateur si la boucle se termine avant le premier affichage.
 		if (activationObserver != nil)
 			((void (*)(id, SEL, id))objc_msgSend)(notificationCenter, sel_registerName("removeObserver:"),
 							      activationObserver);
-		if (resignationObserver != nil)
-			((void (*)(id, SEL, id))objc_msgSend)(notificationCenter, sel_registerName("removeObserver:"),
-							      resignationObserver);
 		jniThread.join();
 	}
 	else
