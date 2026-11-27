@@ -81,12 +81,12 @@ Symbol KWDRFormatContinuous::ComputeSymbolResult(const KWObject* kwoObject) cons
 	else
 	{
 		// Recherche des parametres
-		nWidth = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+		nWidth = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
 		if (nWidth < 0)
 			nWidth = 0;
 		if (nWidth > 50)
 			nWidth = 50;
-		nPrecision = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
+		nPrecision = KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 		if (nPrecision < 0)
 			nPrecision = 0;
 		if (nPrecision > 50)

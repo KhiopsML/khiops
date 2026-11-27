@@ -357,7 +357,7 @@ void KIDRClassifierService::Compile(KWClass* kwcOwnerClass)
 				// Recherche de l'attribut correspondant
 				if (dataGridBlockRule->GetDataGridVarKeyType() == KWType::Continuous)
 				{
-					nVarKey = int(floor(dataGridBlockRule->GetContinuousVarKeyAt(nDataGrid) + 0.5));
+					nVarKey = dataGridBlockRule->GetContinuousVarKeyAt(nDataGrid);
 					attribute = attributeBlock->LookupAttributeByContinuousVarKey(nVarKey);
 				}
 				else
@@ -978,7 +978,8 @@ void KIDRInterpretationRule::Compile(KWClass* kwcOwnerClass)
 		else
 		{
 			assert(GetOperandAt(2)->GetType() == KWType::Continuous);
-			nConstantContributionRank = (int)floor(GetOperandAt(2)->GetContinuousConstant() - 0.5);
+			nConstantContributionRank =
+			    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousConstant());
 		}
 	}
 }
@@ -1070,12 +1071,14 @@ Symbol KIDRContributionAttributeAt::ComputeSymbolResult(const KWObject* kwoObjec
 		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nContributionRank = nConstantContributionRank;
 	if (nContributionRank == -1)
-		nContributionRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nContributionRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Attribut de contribution si valide
-	if (nTargetValueRank >= 0 and nContributionRank >= 0)
-		return classifierInterpreter->GetRankedContributionAttributeAt(nTargetValueRank, nContributionRank);
-	// Valeur manquante sinon
+	if (nTargetValueRank >= 0 and nContributionRank >= 1 and
+	    nContributionRank <= classifierInterpreter->GetPredictorAttributeNumber())
+		return classifierInterpreter->GetRankedContributionAttributeAt(nTargetValueRank, nContributionRank - 1);
+	// Valeur vide sinon
 	else
 		return Symbol();
 }
@@ -1118,12 +1121,14 @@ Symbol KIDRContributionPartAt::ComputeSymbolResult(const KWObject* kwoObject) co
 		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nContributionRank = nConstantContributionRank;
 	if (nContributionRank == -1)
-		nContributionRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nContributionRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Partie de l'attribut de contribution si valide
-	if (nTargetValueRank >= 0 and nContributionRank >= 0)
-		return classifierInterpreter->GetRankedContributionPartAt(nTargetValueRank, nContributionRank);
-	// Valeur manquante sinon
+	if (nTargetValueRank >= 0 and nContributionRank >= 1 and
+	    nContributionRank <= classifierInterpreter->GetPredictorAttributeNumber())
+		return classifierInterpreter->GetRankedContributionPartAt(nTargetValueRank, nContributionRank - 1);
+	// Valeur vide sinon
 	else
 		return Symbol();
 }
@@ -1166,11 +1171,13 @@ Continuous KIDRContributionValueAt::ComputeContinuousResult(const KWObject* kwoO
 		    classifierInterpreter->GetTargetValueRank(GetOperandAt(1)->GetSymbolValue(kwoObject));
 	nContributionRank = nConstantContributionRank;
 	if (nContributionRank == -1)
-		nContributionRank = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) - 0.5);
+		nContributionRank =
+		    KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Valeur de contribution si valide
-	if (nTargetValueRank >= 0 and nContributionRank >= 0)
-		return classifierInterpreter->GetRankedContributionValueAt(nTargetValueRank, nContributionRank);
+	if (nTargetValueRank >= 0 and nContributionRank >= 1 and
+	    nContributionRank <= classifierInterpreter->GetPredictorAttributeNumber())
+		return classifierInterpreter->GetRankedContributionValueAt(nTargetValueRank, nContributionRank - 1);
 	// Valeur manquante sinon
 	else
 		return KWContinuous::GetMissingValue();

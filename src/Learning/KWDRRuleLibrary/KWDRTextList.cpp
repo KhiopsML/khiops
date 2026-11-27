@@ -78,7 +78,7 @@ Symbol KWDRTextListAt::ComputeTextResult(const KWObject* kwoObject) const
 	if (svTextList != NULL)
 	{
 		// Recherche du rang
-		nIndex = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+		nIndex = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousValue(kwoObject));
 
 		// On renvoie l'objet si son rang est valide
 		if (1 <= nIndex and nIndex <= svTextList->GetSize())

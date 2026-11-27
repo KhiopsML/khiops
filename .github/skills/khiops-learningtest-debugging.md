@@ -5,8 +5,9 @@ description: "Use when the user reports failing LearningTest tests and provides 
 
 # Debugging Failing LearningTests
 
-Use when the user provides a `LearningTest` path and reports failures. A leaf containing `test.prm` means `kht_test`
-already ran it; start with its `comparisonResults.log` and `results/`. Use
+Use when the user provides a `LearningTest` path and reports failures. A leaf containing `test.prm` identifies a test,
+but does not guarantee that results exist or are current. Start with its `comparisonResults.log` and `results/` if
+available, and check the execution context and binary when relevant. Use
 [`learning-test-tool.instructions.md`](../instructions/learning-test-tool.instructions.md) for comparison and
 reference-update details.
 
@@ -25,7 +26,7 @@ Defaults: `r`, `-p 4`, and `--family full-no-kni`. Do not ask first; adjust only
    git -C <Khiops_repo> branch --show-current
    git -C <Khiops_repo> diff --stat main...HEAD
    ```
-   On a branch other than `main`, treat its changes as the regression source.
+   Treat branch changes as possible causes, not proof of the regression source.
 
 3. **Collect failures** without re-running the suite:
    ```bash
@@ -36,6 +37,9 @@ Defaults: `r`, `-p 4`, and `--family full-no-kni`. Do not ask first; adjust only
    `results.ref*`. Read execution markers first: `process_timeout_error.log`, `return_code_error.log`,
    `stdout_error.log`, and `stderr_error.log`; then inspect output files such as `err.txt`. Log values may be
    truncated, so read the actual files.
+
+   Establish expected behavior from requirements and code before classifying a difference. Distinguish observed
+   results from unverified explanations.
 
    Treat crashes, timeouts, numeric drift, and unexpected output as regressions: do not update references. Update
    references only for confirmed intentional behavior changes, following the instruction file for all `results.ref*`

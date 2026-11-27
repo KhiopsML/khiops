@@ -587,17 +587,25 @@ const ALString JSONTokenizer::GetLastTokenValue()
 
 boolean JSONTokenizer::DoubleToInt(double dValue, int& nValue)
 {
-	// Recherche de l'entier le plus proche
-	nValue = int(floor(dValue + 0.5));
+	boolean bOk = false;
+	double dRoundedValue;
 
-	// Ok si presque egale, avec tolerance
-	if (fabs(dValue - nValue) < 1e-6)
-		return true;
-	else
+	// Recherche de l'entier le plus proche
+	nValue = 0;
+	if (not p_isnan(dValue))
 	{
-		nValue = 0;
-		return false;
+		dRoundedValue = floor(dValue + 0.5);
+		if (INT_MIN <= dRoundedValue and dRoundedValue <= INT_MAX)
+		{
+			nValue = int(dRoundedValue);
+
+			// Ok si presque egale, avec tolerance
+			bOk = fabs(dValue - nValue) < 1e-6;
+		}
 	}
+	if (not bOk)
+		nValue = 0;
+	return bOk;
 }
 
 void JSONTokenizer::AddParseWarning(const ALString& sLabel)

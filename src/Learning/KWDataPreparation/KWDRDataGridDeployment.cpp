@@ -112,7 +112,7 @@ boolean KWDRDataGridAtRule::CheckOperandsCompleteness(const KWClass* kwcOwnerCla
 
 		// Test de validite de l'index
 		cDeploymentAttributeIndex = GetOperandAt(1)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cDeploymentAttributeIndex, nAttributeIndex);
+		bOk = KWContinuous::ContinuousToExactInt(cDeploymentAttributeIndex, nAttributeIndex);
 		if (not bOk)
 		{
 			AddError(sTmp + "The data grid variable index (" +
@@ -159,7 +159,8 @@ void KWDRDataGridAtRule::Optimize(KWClass* kwcOwnerClass)
 {
 	require(IsCompiled());
 	dataGridRule = cast(KWDRDataGrid*, GetFirstOperand()->GetReferencedDerivationRule(kwcOwnerClass));
-	nDeploymentAttributeIndex = (int)floor(GetSecondOperand()->GetContinuousConstant() - 1 + 0.5);
+	nDeploymentAttributeIndex = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousConstant());
+	nDeploymentAttributeIndex--;
 	assert(0 <= nDeploymentAttributeIndex and
 	       nDeploymentAttributeIndex < dataGridRule->GetUncheckedAttributeNumber());
 }
@@ -271,7 +272,7 @@ boolean KWDRDataGridDeployment::CheckOperandsCompleteness(const KWClass* kwcOwne
 
 		// Acces a l'index, en passant a un index "interne" entre 0 et K-1
 		cDeploymentAttributeIndex = GetOperandAt(1)->GetContinuousConstant();
-		nAttributeIndex = (int)floor(cDeploymentAttributeIndex + 0.5);
+		nAttributeIndex = KWContinuous::ContinuousToBoundedInt(cDeploymentAttributeIndex);
 		assert(1 <= nAttributeIndex and nAttributeIndex <= nDataGridAttributeNumber);
 		nAttributeIndex--;
 
@@ -495,7 +496,7 @@ void KWDRDataGridDeployment::ComputeDeploymentStats(const KWObject* kwoObject) c
 				// Memorisation de la frequence si valide, erreur sinon
 				if (cFrequency >= 0 and cFrequency < INT_MAX)
 				{
-					ivFrequencyVector.SetAt(i, (int)floor(cFrequency + 0.5));
+					ivFrequencyVector.SetAt(i, KWContinuous::ContinuousToBoundedInt(cFrequency));
 					cTotalFrequency += cFrequency;
 				}
 				else
@@ -615,8 +616,8 @@ Symbol KWDRPredictedPartId::ComputeSymbolResult(const KWObject* kwoObject) const
 		// Acces aux parametres necessaires
 		dataGridRule =
 		    cast(KWDRDataGrid*, dataGridDeploymentRule->GetFirstOperand()->GetStructureValue(kwoObject));
-		nDeploymentAttributeIndex =
-		    (int)floor(dataGridDeploymentRule->GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+		nDeploymentAttributeIndex = KWContinuous::ContinuousToBoundedInt(
+		    dataGridDeploymentRule->GetSecondOperand()->GetContinuousValue(kwoObject));
 
 		// Calcul des Ids de la partition
 		svPartIds.SetSize(dataGridRule->GetAttributePartNumberAt(nDeploymentAttributeIndex));
@@ -759,7 +760,7 @@ Object* KWDRPredictedPartFrequenciesAt::ComputeStructureResult(const KWObject* k
 	dataGridDeploymentRule = cast(KWDRDataGridDeployment*, GetFirstOperand()->GetStructureValue(kwoObject));
 
 	// Acces a l'index de distribution
-	nDistributionAttributeIndex = (int)floor(GetOperandAt(1)->GetContinuousConstant() + 0.5);
+	nDistributionAttributeIndex = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousConstant());
 	nDistributionAttributeIndex--;
 
 	// Acces au vecteur de distances, et reformatage
@@ -825,13 +826,13 @@ boolean KWDRPredictedPartFrequenciesAt::CheckOperandsCompleteness(const KWClass*
 		// Acces a l'index de deploiement, en passant a un index "interne" entre 0 et K-1 (deja verifie dans la
 		// classe ancetre)
 		cDeploymentAttributeIndex = dataGridDeploymentRule->GetOperandAt(1)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cDeploymentAttributeIndex, nDeploymentAttributeIndex);
+		bOk = KWContinuous::ContinuousToExactInt(cDeploymentAttributeIndex, nDeploymentAttributeIndex);
 		assert(bOk);
 		assert(1 <= nDeploymentAttributeIndex and nDeploymentAttributeIndex <= nDataGridAttributeNumber);
 
 		// Acces a l'index de distribution, en passant a un index "interne" entre 0 et K-1
 		cDistributionAttributeIndex = GetOperandAt(1)->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cDistributionAttributeIndex, nDistributionAttributeIndex);
+		bOk = KWContinuous::ContinuousToExactInt(cDistributionAttributeIndex, nDistributionAttributeIndex);
 
 		// Test de validite de l'index de distribution
 		if (not bOk)
@@ -934,7 +935,7 @@ boolean KWDRDataGridDeploymentDistributionRule::CheckOperandsCompleteness(const 
 
 		// Acces a l'index, en passant a un index "interne" entre 0 et K-1
 		cDeploymentAttributeIndex = GetOperandAt(1)->GetContinuousConstant();
-		nAttributeIndex = (int)floor(cDeploymentAttributeIndex + 0.5);
+		nAttributeIndex = KWContinuous::ContinuousToBoundedInt(cDeploymentAttributeIndex);
 		assert(1 <= nAttributeIndex and nAttributeIndex <= nDataGridAttributeNumber);
 		nAttributeIndex--;
 
@@ -1093,7 +1094,7 @@ boolean KWDRPartIndexAt::CheckOperandsCompleteness(const KWClass* kwcOwnerClass)
 
 		// Acces a l'index, en passant a un index "interne" entre 0 et K-1
 		cDeploymentAttributeIndex = GetOperandAt(1)->GetContinuousConstant();
-		nAttributeIndex = (int)floor(cDeploymentAttributeIndex + 0.5);
+		nAttributeIndex = KWContinuous::ContinuousToBoundedInt(cDeploymentAttributeIndex);
 		assert(1 <= nAttributeIndex and nAttributeIndex <= nDataGridAttributeNumber);
 		nAttributeIndex--;
 

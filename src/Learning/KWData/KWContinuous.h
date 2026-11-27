@@ -52,9 +52,14 @@ public:
 	// des Continuous indiscernables
 	static Continuous DoubleToContinuous(double dValue);
 
-	// Conversion vers un int
-	// Renvoie true si la conversion est un succes
-	static boolean ContinuousToInt(Continuous cValue, int& nValue);
+	// Conversion stricte vers un int: true si la valeur est entiere (a 1e-8 pres)
+	// Sinon (non entiere, manquante, infinie, NaN ou hors plage des int), renvoie false avec nValue a 0
+	static boolean ContinuousToExactInt(Continuous cValue, int& nValue);
+
+	// Conversion vers l'entier le plus proche, borne a [INT_MIN, INT_MAX], sans comportement indefini
+	// La valeur manquante (ou NaN) donne INT_MIN, hors de portee pour tout index, rang ou taille
+	// Tout calcul sur le resultat (decrement, somme...) doit etre precede d'un controle de plage
+	static int ContinuousToBoundedInt(Continuous cValue);
 
 	// Test si une valeur est entiere
 	static boolean IsInt(Continuous cValue);
@@ -397,25 +402,47 @@ inline boolean KWContinuous::CheckError(int nValue)
 	return (NoError <= nValue and nValue <= ErrorBadEndString);
 }
 
-inline boolean KWContinuous::ContinuousToInt(Continuous cValue, int& nValue)
+inline int KWContinuous::ContinuousToBoundedInt(Continuous cValue)
 {
-	// Recherche de l'entier le plus proche
-	nValue = int(floor(cValue + 0.5));
+	double dRounded;
 
-	// Ok si presque egale, avec tolerance par rapport au nombre max de digits GetDigitNumber
-	if (fabs(cValue - nValue) < 1e-8)
-		return true;
-	else
+	// NaN: test explicite en premier, car toute comparaison avec NaN est fausse
+	if (p_isnan(cValue))
+		return INT_MIN;
+
+	// Arrondi avant bornage
+	// Les infinis +-HUGE_VAL sont inchanges, dont -HUGE_VAL qui est la valeur manquante
+	dRounded = floor(cValue + 0.5);
+
+	// Bornage: +-HUGE_VAL, donc la valeur manquante, sont hors bornes
+	if (dRounded < INT_MIN)
+		return INT_MIN;
+	if (dRounded > INT_MAX)
+		return INT_MAX;
+	return int(dRounded);
+}
+
+inline boolean KWContinuous::ContinuousToExactInt(Continuous cValue, int& nValue)
+{
+	int nBoundedValue;
+
+	// Ok si la valeur bornee est presque egale a la valeur initiale
+	// Valeurs hors bornes, manquante ou infinies: ecart avec la valeur bornee superieur a la tolerance
+	// NaN: ecart NaN, et la comparaison avec NaN est fausse (donc rejete)
+	nBoundedValue = ContinuousToBoundedInt(cValue);
+	if (fabs(cValue - nBoundedValue) < 1e-8)
 	{
-		nValue = 0;
-		return false;
+		nValue = nBoundedValue;
+		return true;
 	}
+	nValue = 0;
+	return false;
 }
 
 inline boolean KWContinuous::IsInt(Continuous cValue)
 {
 	int nValue;
-	return ContinuousToInt(cValue, nValue);
+	return ContinuousToExactInt(cValue, nValue);
 }
 
 inline boolean KWContinuous::IsStringContinuous(const char* const sValue)

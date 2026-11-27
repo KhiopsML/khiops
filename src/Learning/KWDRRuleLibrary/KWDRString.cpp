@@ -123,7 +123,7 @@ Symbol KWDRLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nCharNumber = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+	nCharNumber = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousValue(kwoObject));
 
 	// Extraction de la sous-chaine
 	if (nCharNumber <= 0)
@@ -165,7 +165,7 @@ Symbol KWDRRight::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nCharNumber = (int)floor(GetSecondOperand()->GetContinuousValue(kwoObject) + 0.5);
+	nCharNumber = KWContinuous::ContinuousToBoundedInt(GetSecondOperand()->GetContinuousValue(kwoObject));
 
 	// Extraction de la sous-chaine
 	if (nCharNumber <= 0)
@@ -209,15 +209,16 @@ Symbol KWDRMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
-	nCharNumber = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
+	nBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
+	nCharNumber = KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Extraction de la sous-chaine
 	if (nBegin < 1 or nBegin > sValue.GetLength())
 		return "";
 	else if (nCharNumber <= 0)
 		return "";
-	else if (nBegin + nCharNumber > sValue.GetLength())
+	// Test equivalent a nBegin + nCharNumber > longueur, sans risque de debordement
+	else if (nCharNumber > sValue.GetLength() - nBegin)
 	{
 		const KWSymbolAsString sTmpValue(sValue);
 		return StringToSymbol(sTmpValue.Right(sTmpValue.GetLength() - nBegin + 1));
@@ -333,7 +334,7 @@ Symbol KWDRTokenLeft::ComputeSymbolResult(const KWObject* kwoObject) const
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nLength = sValue.GetLength();
 	sDelimiters = GetOperandAt(1)->GetSymbolValue(kwoObject);
-	nTokenNumber = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
+	nTokenNumber = KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Si chaine vide: pas de token
 	if (nLength == 0)
@@ -438,7 +439,7 @@ Symbol KWDRTokenRight::ComputeSymbolResult(const KWObject* kwoObject) const
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nLength = sValue.GetLength();
 	sDelimiters = GetOperandAt(1)->GetSymbolValue(kwoObject);
-	nTokenNumber = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
+	nTokenNumber = KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
 
 	// Si chaine vide: pas de token
 	if (nLength == 0)
@@ -546,8 +547,8 @@ Symbol KWDRTokenMiddle::ComputeSymbolResult(const KWObject* kwoObject) const
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
 	nLength = sValue.GetLength();
 	sDelimiters = GetOperandAt(1)->GetSymbolValue(kwoObject);
-	nTokenBegin = (int)floor(GetOperandAt(2)->GetContinuousValue(kwoObject) + 0.5);
-	nTokenNumber = (int)floor(GetOperandAt(3)->GetContinuousValue(kwoObject) + 0.5);
+	nTokenBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(2)->GetContinuousValue(kwoObject));
+	nTokenNumber = KWContinuous::ContinuousToBoundedInt(GetOperandAt(3)->GetContinuousValue(kwoObject));
 
 	// Si chaine vide: pas de token
 	if (nLength == 0)
@@ -786,7 +787,7 @@ Continuous KWDRSearch::ComputeContinuousResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+	nBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
 	sSearchString = GetOperandAt(2)->GetSymbolValue(kwoObject);
 
 	// Recherche de la sous-chaine
@@ -847,7 +848,7 @@ Symbol KWDRReplace::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+	nBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
 	sSearchString = GetOperandAt(2)->GetSymbolValue(kwoObject);
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
@@ -921,7 +922,7 @@ Symbol KWDRReplaceAll::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+	nBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
 	sSearchString = GetOperandAt(2)->GetSymbolValue(kwoObject);
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
@@ -1074,7 +1075,7 @@ Continuous KWDRRegexSearch::ComputeContinuousResult(const KWObject* kwoObject) c
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+	nBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
 
 	// Recherche a partir du debut dans la cas standard
 	if (nBegin == 1)
@@ -1135,7 +1136,7 @@ Symbol KWDRRegexReplace::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+	nBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
 	// Recherche a partir du debut dans la cas standard
@@ -1192,7 +1193,7 @@ Symbol KWDRRegexReplaceAll::ComputeSymbolResult(const KWObject* kwoObject) const
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nBegin = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+	nBegin = KWContinuous::ContinuousToBoundedInt(GetOperandAt(1)->GetContinuousValue(kwoObject));
 	sReplaceString = GetOperandAt(3)->GetSymbolValue(kwoObject);
 
 	// Recherche a partir du debut dans la cas standard
@@ -1403,14 +1404,30 @@ Continuous KWDRHash::ComputeContinuousResult(const KWObject* kwoObject) const
 	Symbol sValue;
 	unsigned int nSize;
 	unsigned int nHash;
+	double dSize;
+	Continuous cResult;
 
 	require(IsCompiled());
 
 	// Recherche des parametres
 	sValue = GetFirstOperandGenericSymbolValue(kwoObject);
-	nSize = (int)floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
+	dSize = floor(GetOperandAt(1)->GetContinuousValue(kwoObject) + 0.5);
 
-	// Calcul de la cle de hashage
-	nHash = HashValue(sValue) % nSize;
-	return (Continuous)nHash;
+	// Resultat manquant par defaut
+	cResult = KWContinuous::GetMissingValue();
+
+	// Calcul de la cle de hashage si la taille est valide
+	// Le test sous forme positive rejette aussi une taille manquante (-INF) ou NaN
+	if (dSize >= 1)
+	{
+		// Taille bornee a la plage des unsigned int
+		if (dSize >= UINT_MAX)
+			nSize = UINT_MAX;
+		else
+			nSize = (unsigned int)dSize;
+		nHash = HashValue(sValue) % nSize;
+		cResult = (Continuous)nHash;
+	}
+	ensure(cResult == KWContinuous::GetMissingValue() or cResult >= 0);
+	return cResult;
 }

@@ -1042,7 +1042,7 @@ int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject,
 	{
 		// Recherche de l'effectif
 		cObjectFrequency = kwoObject->GetContinuousValueAt(frequencyAttribute->GetLoadIndex());
-		nObjectFrequency = (int)floor(cObjectFrequency + 0.5);
+		nObjectFrequency = KWContinuous::ContinuousToBoundedInt(cObjectFrequency);
 		if (nObjectFrequency < 0)
 			nObjectFrequency = 0;
 
@@ -1056,6 +1056,13 @@ int CCCoclusteringBuilder::GetDatabaseObjectFrequency(const KWObject* kwoObject,
 
 			// On met l'effectif a 0 pour ignorer l'enregistrement
 			nObjectFrequency = 0;
+		}
+		// Enregistrement ignore si effectif non numerique
+		else if (p_isnan(cObjectFrequency))
+		{
+			GetDatabase()->AddWarning(
+			    sTmp + "Ignored record " + LongintToString(kwoObject->GetCreationIndex()) +
+			    ", frequency variable (" + GetFrequencyAttributeName() + ") with NaN value");
 		}
 		// Enregistrement ignore si effectif negatif ou nul
 		else if (cObjectFrequency <= 0)

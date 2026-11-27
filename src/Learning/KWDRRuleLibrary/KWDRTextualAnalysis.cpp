@@ -13,7 +13,7 @@ void KWDRRegisterTextualAnalysisRules()
 	KWDerivationRule::RegisterDerivationRule(new KWDRTextTokens);
 	KWDerivationRule::RegisterDerivationRule(new KWDRTextListTokens);
 	KWDerivationRule::RegisterDerivationRule(new KWDRTextInit);
-	KWDRRegisterTextualAnalysisPROTORules();
+	KWDerivationRule::RegisterDerivationRule(new KWDRTokenCounts);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -366,7 +366,7 @@ Symbol KWDRTextInit::ComputeTextResult(const KWObject* kwoObject) const
 	char cValue;
 
 	// Construction d'un chaine de la longueur souhaitee
-	nSize = int(floor(GetFirstOperand()->GetContinuousConstant() + 0.5));
+	nSize = KWContinuous::ContinuousToBoundedInt(GetFirstOperand()->GetContinuousConstant());
 	cValue = GetSecondOperand()->GetSymbolConstant().GetAt(0);
 	sResult = ALString(cValue, nSize);
 	return Symbol(sResult, nSize);
@@ -390,7 +390,7 @@ boolean KWDRTextInit::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) co
 
 		// Taille du texe a generer
 		cValue = GetFirstOperand()->GetContinuousConstant();
-		bOk = KWContinuous::ContinuousToInt(cValue, nValue);
+		bOk = KWContinuous::ContinuousToExactInt(cValue, nValue);
 		if (not bOk)
 		{
 			AddError(sTmp + "Size of text (" + KWContinuous::ContinuousToString(cValue) +
@@ -419,4 +419,139 @@ boolean KWDRTextInit::CheckOperandsCompleteness(const KWClass* kwcOwnerClass) co
 		}
 	}
 	return bOk;
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Classe KWDRTokenCounts
+
+KWDRTokenCounts::KWDRTokenCounts()
+{
+	SetName("TokenCounts");
+	SetLabel("Token counts from a categorical value");
+	SetType(KWType::ContinuousValueBlock);
+	SetOperandNumber(1);
+	GetFirstOperand()->SetType(KWType::Symbol);
+}
+
+KWDRTokenCounts::~KWDRTokenCounts() {}
+
+int KWDRTokenCounts::GetVarKeyType() const
+{
+	return KWType::Symbol;
+}
+
+KWDerivationRule* KWDRTokenCounts::Create() const
+{
+	return new KWDRTokenCounts;
+}
+
+KWContinuousValueBlock*
+KWDRTokenCounts::ComputeContinuousValueBlockResult(const KWObject* kwoObject,
+						   const KWIndexedKeyBlock* indexedKeyBlock) const
+{
+	KWContinuousValueBlock* cvbTokenCounts;
+	Symbol sInputValue;
+
+	require(IsCompiled());
+	require(indexedKeyBlock != NULL);
+
+	sInputValue = GetFirstOperand()->GetSymbolValue(kwoObject);
+	cvbTokenCounts = ComputeTokenCounts(sInputValue, indexedKeyBlock);
+	return cvbTokenCounts;
+}
+
+Continuous KWDRTokenCounts::GetValueBlockContinuousDefaultValue() const
+{
+	return 0;
+}
+
+KWContinuousValueBlock* KWDRTokenCounts::ComputeTokenCounts(const Symbol& sValue,
+							    const KWIndexedKeyBlock* indexedKeyBlock) const
+{
+	KWContinuousValueBlock* cvbTokenCounts;
+	KWContinuousValueDictionary cvdTokenCounts;
+	const char* sStringValue;
+	char cChar;
+	ALString sToken;
+	Symbol sAttributeKey;
+	boolean bEnd;
+
+	require(indexedKeyBlock != NULL);
+
+	// Acces a la chaine de caractere a analyser
+	sStringValue = sValue.GetValue();
+
+	// Parcours des caracteres de la chaines pour extraire les tokens
+	bEnd = false;
+	while (not bEnd)
+	{
+		// Acces au caractere courant
+		cChar = *sStringValue;
+
+		// Preparation du caractere suivant
+		bEnd = (cChar == '\0');
+		sStringValue++;
+
+		// Ajout d'un caractere s'il n'est pas blanc
+		if (not iswspace(cChar) and not bEnd)
+			sToken += cChar;
+		// Sinon, fin du token
+		else
+		{
+			// On traite les token non vides
+			if (sToken.GetLength() > 0)
+			{
+				// Incrementation du compte lie au token
+				sAttributeKey = Symbol(sToken);
+				if (cast(KWIndexedCKeyBlock*, indexedKeyBlock)->IsKeyPresent(sAttributeKey))
+					cvdTokenCounts.UpgradeAt(sAttributeKey, 1);
+
+				// Reinitialisation du token, sans desallouer sa memoire
+				sToken.GetBufferSetLength(0);
+			}
+		}
+	}
+
+	// Construction du bloc de compte
+	cvbTokenCounts = KWContinuousValueBlock::BuildBlockFromValueDictionary(
+	    cast(KWIndexedCKeyBlock*, indexedKeyBlock), &cvdTokenCounts);
+	ensure(cvbTokenCounts->SearchValueIndex(0) == -1);
+	return cvbTokenCounts;
+}
+
+longint KWDRTokenCounts::GetUsedMemory() const
+{
+	longint lUsedMemory;
+	lUsedMemory = sizeof(KWDRTokenCounts);
+	return lUsedMemory;
+}
+
+void KWDRTokenCounts::Test()
+{
+	KWDRTokenCounts tokenCounts;
+	KWIndexedCKeyBlock indexedKeyBlock;
+
+	// Initialisation des tokens a compter, dans l'ordre alphabetique impose
+	indexedKeyBlock.AddKey("bonjour");
+	indexedKeyBlock.AddKey("le");
+	indexedKeyBlock.AddKey("monde");
+	indexedKeyBlock.AddKey("tout");
+	cout << "Tokens: " << indexedKeyBlock << endl;
+
+	// Test avec plusieurs chaines
+	indexedKeyBlock.IndexKeys();
+	tokenCounts.TestCount("bonjour", &indexedKeyBlock);
+	tokenCounts.TestCount("le monde est grand", &indexedKeyBlock);
+	tokenCounts.TestCount("coucou", &indexedKeyBlock);
+	tokenCounts.TestCount("le soir et le matin", &indexedKeyBlock);
+}
+
+void KWDRTokenCounts::TestCount(const ALString& sInputValue, const KWIndexedKeyBlock* indexedKeyBlock)
+{
+	KWContinuousValueBlock* valueBlock;
+
+	cout << sInputValue << "\n";
+	valueBlock = ComputeTokenCounts(Symbol(sInputValue), indexedKeyBlock);
+	cout << "\t" << *valueBlock << endl;
+	delete valueBlock;
 }

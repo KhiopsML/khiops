@@ -137,6 +137,8 @@ protected:
 	// Lors de la compilation, on memorise un rang en dur si l'operande est
 	// constant et valide, -1 sinon
 	// Lors de l'acces au rang, on exploite ce rang si possible, sinon on le recalcule
+	// Les rangs de renforcement sont des rangs externes (a partir de 1), a convertir en index (a partir de 0)
+	// apres controle de validite
 
 	// Memorisation des rangs issus de la compilation
 	int nConstantTargetValueRank;

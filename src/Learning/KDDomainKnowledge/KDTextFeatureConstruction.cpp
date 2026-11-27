@@ -481,7 +481,7 @@ void KDTextFeatureConstruction::ComputeTextClassConstructedFeatureNumbers(const 
 		textAttributePath = cast(KDTextAttributePath*, mainTextClass->GetTextAttributePaths()->GetAt(nPath));
 
 		// Memorisation du nombre de variables construites
-		nFrequency = (int)floor(dvFrequencies.GetAt(nPath) + 0.5);
+		nFrequency = KWContinuous::ContinuousToBoundedInt(dvFrequencies.GetAt(nPath));
 		textAttributePath->SetConstructedFeatureNumber(nFrequency);
 
 		// Affichage des resultats

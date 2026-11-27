@@ -20,8 +20,8 @@ boolean Time::Init(int nHour, int nMinute, double dSecond)
 	// Verification de la minute
 	else if (nMinute < 0 or nMinute >= 60)
 		bOk = false;
-	// Verification de la seconde
-	else if (dSecond < 0 or dSecond >= 60)
+	// Verification de la seconde, en rejetant aussi NaN
+	else if (p_isnan(dSecond) or dSecond < 0 or dSecond >= 60)
 		bOk = false;
 
 	// Initialisation si Ok
