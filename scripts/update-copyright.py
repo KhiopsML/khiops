@@ -13,7 +13,6 @@ import shutil
 from datetime import datetime
 
 # pylint: disable=line-too-long
-byte_linesep = bytes(os.linesep, encoding="ascii")
 copyright_banner_lines = [
     bytes(
         f"Copyright (c) 2023-{datetime.today().year} Orange. All rights reserved.",
@@ -43,6 +42,18 @@ def main(args):
     return return_code
 
 
+def get_line_ending(lines):
+    """Returns the line ending used by the file, defaulting to the platform one"""
+    for line in lines:
+        if line.endswith(b"\r\n"):
+            return b"\r\n"
+        if line.endswith(b"\n"):
+            return b"\n"
+        if line.endswith(b"\r"):
+            return b"\r"
+    return bytes(os.linesep, encoding="ascii")
+
+
 def update_copyright(file_path):
     """Updates the copyright notice of a file if necessary"""
 
@@ -58,6 +69,10 @@ def update_copyright(file_path):
     # Read the lines from the source file
     with open(file_path, "rb") as file:
         lines = file.readlines()
+
+    # Reuse the file's own line ending, so that files are not rewritten with a
+    # different line ending than the one they already have (e.g. LF files on Windows)
+    byte_linesep = get_line_ending(lines)
 
     # Write the contents to a temporary file
     # NB: We clean manually the tmp file because the auto-delete creates problems in Win
