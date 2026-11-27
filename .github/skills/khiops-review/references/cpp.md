@@ -2,7 +2,7 @@
 
 ## Load the authoritative rules first
 
-Read the [coding guidelines](../../../../doc/developement/coding-guidelines.md)
+Read the [coding guidelines](../../../../doc/development/coding-guidelines.md)
 and [C++ instructions](../../../instructions/cpp-changes.instructions.md).
 Review the changed code against those rules before considering general C++
 advice. Preserve documented exceptions and distinguish generated code from

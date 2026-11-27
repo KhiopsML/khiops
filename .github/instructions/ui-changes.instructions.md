@@ -6,7 +6,7 @@ applyTo: ["**/*.dd", "src/**/UI*.h", "src/**/UI*.cpp", "src/**/*View*.h", "src/*
 
 # UI Development Instructions for Khiops
 
-Full reference: https://github.com/KhiopsML/khiops/wiki/User-Interface-Development-and-Usage
+Full reference: [UI Development and Usage](../../doc/development/ui-development.md).
 
 ## UI Architecture
 

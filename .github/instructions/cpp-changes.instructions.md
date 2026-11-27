@@ -8,7 +8,7 @@ applyTo: "**/*.cpp, **/*.h"
 
 ## Coding Rules
 
-Before editing C++ code, consult the relevant sections of the [Khiops Coding Guidelines](../../doc/developement/coding-guidelines.md) and follow them. Read the full guide when a change spans multiple areas. It is the authoritative source for C++ style, naming, class structure, and language/library restrictions.
+Before editing C++ code, consult the relevant sections of the [Khiops Coding Guidelines](../../doc/development/coding-guidelines.md) and follow them. Read the full guide when a change spans multiple areas. It is the authoritative source for C++ style, naming, class structure, and language/library restrictions.
 
 For module-specific architecture and naming, follow the [workspace instructions](../copilot-instructions.md) and nearby code.
 
@@ -16,11 +16,11 @@ For module-specific architecture and naming, follow the [workspace instructions]
 
 - Use the `Norm` contract macros (`require`, `ensure`, `assert`, `check`, and `cast`) for preconditions, postconditions, and runtime checks. Assertions are active in debug builds only.
 - Use `PLParallelTask` for parallel work; do not introduce threads. See `src/Parallel/doc/bibliotheque parallele.md` for its master/slave model and shared-variable rules.
-- For assertion failures or memory leaks, use a debug build and the breakpoint/debugging guidance in the [workspace instructions](../copilot-instructions.md).
+- For assertion failures or memory leaks, use a debug build; see the [debugging and testing guide](../../doc/development/debugging-and-testing.md) for breakpoint guidance.
 
 ## Validation
 
 - Format changed C++ files with `clang-format`.
 - Run `scripts/check-encoding.py` and `scripts/check-obsolete-copyright.py` on changed files.
-- Build and run the focused tests for the affected module, following the [workspace build and test guidance](../copilot-instructions.md).
+- Build and run the focused tests for the affected module, following the [workspace build and test guidance](../copilot-instructions.md). See the [unit tests guide](../../doc/development/unit-tests.md) for test executable details.
 - When addressing compiler warnings or control-flow-dependent initialization, build the relevant Release configuration as well as Debug.
