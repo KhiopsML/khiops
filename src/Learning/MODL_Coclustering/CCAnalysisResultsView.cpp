@@ -30,12 +30,13 @@ CCAnalysisResultsView::CCAnalysisResultsView()
 	    ->SetHelpText(
 		"Name of the coclustering report that contains the full definition of the coclustering model."
 		"\n By default, the report is stored in the database directory, unless an absolute path is specified."
-		"\n The coclustering report is the input of the Khiops Covisualization tool.");
+		"\n The coclustering report is the input of the Khiops Desktop Visualization Application");
 	GetFieldAt("ShortDescription")
 	    ->SetHelpText(
 		"Brief description to summarize the current analysis, which will be included in the reports.");
 	GetActionAt("VisualizeReport")
-	    ->SetHelpText("Visualize coclustering report if available, using Khiops covisualization tool.");
+	    ->SetHelpText(
+		"Visualize coclustering report if available, using Khiops Desktop Visualization Application.");
 
 	// ##
 }
@@ -118,8 +119,7 @@ void CCAnalysisResultsView::VisualizeReport()
 	else
 	{
 		assert(FileService::GetFileSuffix(sAnalysisReportFileName) == "khcj");
-		bOk = OpenApplication("khiops-covisualization", "Khiops covisualization", sAnalysisReportFileName,
-				      sResult);
+		bOk = OpenApplication("khiops-visualization", "Khiops visualization", sAnalysisReportFileName, sResult);
 		if (not bOk)
 			AddWarning(sResult);
 	}

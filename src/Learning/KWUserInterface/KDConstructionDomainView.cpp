@@ -14,7 +14,7 @@ KDConstructionDomainView::KDConstructionDomainView()
 	SetLabel("Variable construction parameters");
 	AddBooleanField("RuleOptimization", "Optimize constructed rules", false);
 	AddBooleanField("SparseOptimization", "Build sparse rules", false);
-	AddIntField("SparseBlockMinSize", "Sparse blokc min size", 0);
+	AddIntField("SparseBlockMinSize", "Sparse block min size", 0);
 	AddBooleanField("ImportAttributeConstructionCosts", "Import variable construction costs (expert)", false);
 	AddBooleanField("ConstructionRegularization", "Construction regularization (expert)", false);
 

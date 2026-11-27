@@ -267,7 +267,7 @@ void StandardGetInputString(char* sBuffer, FILE* fInput);
 // Lancement d'une application pour ouvir un fichier par programme
 
 // Lancement d'une application sur un fichier en fonction de son extension
-// S'il le nom de l'exe dont la presencer est a verifier n'est pas specifie et s'il n'y a pas d'application
+// Si le nom de l'exe dont la presence est a verifier n'est pas specifie et s'il n'y a pas d'application
 // associee a l'extension, on se base sur l'extension ".txt" pour utiliser l'editeur de texte systeme
 // Le comportement est implemente au mieux pour assurer une portabilite entre windows et linux
 // Parametres
