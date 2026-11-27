@@ -68,10 +68,10 @@ runs:
         echo "APPLY_PY=test/LearningTestTool/py/kht_apply.py" >> "$GITHUB_ENV"
         echo "COLLECT_PY=test/LearningTestTool/py/kht_collect_results.py" >> "$GITHUB_ENV"
     - name: Run Tests
-    # Run test on linux and macOS as describe in the top comment:
-    # - In parallel, run only MODL tests
-    # - In debug run only Standard/Iris for KNITRansfer and MODL_Coclustering, Standard/IrisLight for MODL
-    # - In release run all Standard tests
+      # Run test on linux and macOS as describe in the top comment:
+      # - In parallel, run only MODL tests
+      # - In debug run only Standard/Iris for KNITRansfer and MODL_Coclustering, Standard/IrisLight for MODL
+      # - In release run all Standard tests
       shell: bash
       env:
         # Use more processes than available CPUs: OpenMPI < 5
@@ -150,7 +150,7 @@ runs:
         fi
     - name: Upload test results
       if: failure()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v7.0.2
       with:
         name: test-results-${{ inputs.testing-context-description }}
         retention-days: 7
